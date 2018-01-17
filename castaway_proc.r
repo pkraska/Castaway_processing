@@ -31,23 +31,24 @@
     gsub("% ", "", .) %>% # find % in column names and remove
     as.data.frame() %>% # change from character matrix to data frame
     mutate(ID = 1) %>%
-    filter(V5 != "Invalid") %>% #REMOVE INVALID FILES
+    # filter(V5 != "Invalid") %>% #REMOVE INVALID FILES
     mutate(path = paste(folder,"/", raw.files[1], sep = ""))
 
-  for (i in 2:length(raw.files)) {
+    for (i in 2:length(raw.files)) {
     coord_loop <- read_csv(paste(folder,raw.files[i], sep = "/"), n_max = 27, col_names = FALSE, col_types = cols()) %>%
       select(X2) %>%
       t() %>%
       as.data.frame() %>%
       mutate(ID = i) %>% # Add ID column for linking between data file
-      filter(V5 != "Invalid") %>% #REMOVE INVALID FILES
+      # filter(V5 != "Invalid") %>% #REMOVE INVALID FILES
       mutate(path = paste(folder,"/", raw.files[i], sep = ""))
-    
+
     coord <- rbind(coord, coord_loop)
     setTxtProgressBar(pb, i)
   }
   
   colnames(coord) <- c(col_names, "ID", "path") # Rename columns using the trimmed column names
+  coord$ID <- as.factor(coord$ID)
   coord <- select(coord, ID, path, everything()) #reorder cols so ID is first
   
   # Save output to RROCESSED DATA/ ACRDP_COORDINATES.csv
@@ -56,7 +57,7 @@
   write.csv(coord, paste(folder,"/PROCESSED DATA/CASTAWAY_COORDINATES.csv", sep =""), row.names = FALSE)
   close(pb)
 
-#################### CREATE Castaway Data  File #################### 
+#========================= CREATE Castaway Data  File ========================= 
   # Use first file data to create proper sized dataframe
   
   message("Creating data file in /PROCESSED DATA/ACDRP_CASTAWAY_DATA.csv" )
@@ -67,27 +68,31 @@
     select(ID, everything())
 
   # Loop over the list of files in the folder from raw.files
-  for (i in 2:length(raw.files)) {
+  for (i in 2:length(raw.files)) { 
     df_loop <- read_csv(paste(folder,raw.files[i], sep = "/"), skip = 28, col_types = cols()) %>%
       mutate(ID = i) %>%
       select(ID, everything())
+    
     df <- rbind(df, df_loop)
+    
     setTxtProgressBar(pb2, i)
   }
   
   write.csv(df, paste(folder, "/PROCESSED DATA/CASTAWAY_DATA.csv", sep =""), row.names = FALSE)
   close(pb2)
   
-  #################### CREATE Castaway Depth Profiles #################### 
-  df.join <- left_join(coord, df , 'ID') #Left join drops the "Invalid" cast data identified in coord as those IDs are no longer included there
+#========================= CREATE Castaway Depth Profiles ========================= 
+  df.join <- left_join(coord, df , 'ID') %>% #Left join drops the "Invalid" cast data identified in coord as those IDs are no longer included there
+    filter('Sample type' == "Invalid")
   
   message("Creating castaway depth profiles for all CSV files in folder specificied in /PROCESSED DATA/PLOTS" )
   pb3 <- txtProgressBar(min = 0, max = length(unique(df.join$ID)), style = 3)
   
   # Create plots for every valid (not "Invalid") cast
-  for (i in 1:length(unique(df.join$ID))) {
+  for (i in unique(df.join$ID)) {
     gg.df <- df.join %>%
       filter(ID == unique(df.join$ID)[i]) %>%
+      filter('Data type' == "Invalid")
       select(-1:-28) %>%
       filter(`Pressure (Decibar)` > trim) %>% #filter out data from surface based on pressure being less than 0.25 dbars,can adjust to QC data
       gather(Variable, Measurement, -`Pressure (Decibar)`)
