@@ -53,7 +53,7 @@
   # Save output to RROCESSED DATA/ ACRDP_COORDINATES.csv
   
   dir.create(paste(folder,"/PROCESSED DATA", sep =""), showWarnings = FALSE)
-  write.csv(coord, paste(folder,"/PROCESSED DATA/ACRDP_COORDINATES.csv", sep =""), row.names = FALSE)
+  write.csv(coord, paste(folder,"/PROCESSED DATA/CASTAWAY_COORDINATES.csv", sep =""), row.names = FALSE)
   close(pb)
 
 #################### CREATE Castaway Data  File #################### 
