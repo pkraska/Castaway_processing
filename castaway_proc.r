@@ -75,7 +75,7 @@
     setTxtProgressBar(pb2, i)
   }
   
-  write.csv(df, paste(folder, "/PROCESSED DATA/ACDRP_CASTAWAY_DATA.csv", sep =""))
+  write.csv(df, paste(folder, "/PROCESSED DATA/CASTAWAY_DATA.csv", sep =""), row.names = FALSE)
   close(pb2)
   
   #################### CREATE Castaway Depth Profiles #################### 
