@@ -1,8 +1,7 @@
-# CREATE FUNCTION castaway.head to create header information for all castaway files in folder PROCESSED DATA/ACRDP_COORDINATES.csv, x
-# "C:/Users/kraskape/Documents/DATA/FredPage/ACRDP/RAW DATA/Castaway/ACRDP Drift"
-# proc.castaway <- function(folder, trim = 0.25) {
-  # create list of raw files for analysis based on path provided by x
-  folder <- "C:/Users/kraskape/Documents/DATA/FredPage" #EXAMPLE FOLDER PATH
+castaway <- function(folder, trim = 0.25) {
+# create list of raw files for analysis based on path provided by x
+  # folder <- "C:/Users/kraskape/Documents/DATA/FredPage" #EXAMPLE FOLDER PATH
+  # trim =.25
   
   raw.files <- list.files(path = folder, pattern = "*.csv", recursive = TRUE)
   
@@ -47,8 +46,7 @@
     setTxtProgressBar(pb, i)
   }
   
-  colnames(coord) <- c(col_names, "ID", "path") # Rename columns using the trimmed column names
-  coord$ID <- as.factor(coord$ID)
+  colnames(coord) <- c(gsub(" ", "_", tolower(col_names)), "ID", "path") # Rename columns using the trimmed column names
   coord <- select(coord, ID, path, everything()) #reorder cols so ID is first
   
   # Save output to RROCESSED DATA/ ACRDP_COORDINATES.csv
@@ -79,11 +77,12 @@
   }
   
   write.csv(df, paste(folder, "/PROCESSED DATA/CASTAWAY_DATA.csv", sep =""), row.names = FALSE)
+
   close(pb2)
   
 #========================= CREATE Castaway Depth Profiles ========================= 
   df.join <- left_join(coord, df , 'ID') %>% #Left join drops the "Invalid" cast data identified in coord as those IDs are no longer included there
-    filter('Sample type' == "Invalid")
+    filter(sample_type != "Invalid")
   
   message("Creating castaway depth profiles for all CSV files in folder specificied in /PROCESSED DATA/PLOTS" )
   pb3 <- txtProgressBar(min = 0, max = length(unique(df.join$ID)), style = 3)
@@ -92,8 +91,7 @@
   for (i in unique(df.join$ID)) {
     gg.df <- df.join %>%
       filter(ID == unique(df.join$ID)[i]) %>%
-      filter('Data type' == "Invalid")
-      select(-1:-28) %>%
+      select(-1:-29) %>%
       filter(`Pressure (Decibar)` > trim) %>% #filter out data from surface based on pressure being less than 0.25 dbars,can adjust to QC data
       gather(Variable, Measurement, -`Pressure (Decibar)`)
     
@@ -103,10 +101,10 @@
       scale_y_reverse() +
       ylab("Pressure (Decibars)") +
       xlab("") +
-      ggtitle(paste("Depth profiles for ", coord$'File name'[id = i],sep ="")) +
+      ggtitle(paste(unique(df.join$file_name)[i], "[",i,"]", sep ="")) +
       theme_bw()
     dir.create(paste(folder,"/PROCESSED DATA/PLOTS", sep =""), showWarnings = FALSE)
-    suppressMessages(ggsave(paste(folder,"/PROCESSED DATA/PLOTS/", unique(df.join$'File name')[i],".png", sep = "")))
+    suppressMessages(ggsave(paste(folder,"/PROCESSED DATA/PLOTS/", unique(df.join$file_name)[i],".png", sep = "")))
     
     setTxtProgressBar(pb3, i)
   }
